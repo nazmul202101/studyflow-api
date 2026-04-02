@@ -229,6 +229,47 @@ app.delete("/api/logs/:id", auth, async (req, res) => {
   res.json({ success: true });
 });
 
+// ════════════════════════════════════════════════════════════════════
+// PROFILE UPDATE
+// ════════════════════════════════════════════════════════════════════
+
+app.put("/api/profile", auth, async (req, res) => {
+  const { name, grade, avatar } = req.body;
+  if (!name) return res.status(400).json({ error: "Name is required." });
+  const { data, error } = await supabase
+    .from("users")
+    .update({ name, grade: grade||null, avatar: avatar||null })
+    .eq("id", req.user.id)
+    .select("id, name, email, grade, avatar")
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// ════════════════════════════════════════════════════════════════════
+// STUDENTS — public rankings data
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/students", auth, async (req, res) => {
+  const { data: users, error: uErr } = await supabase
+    .from("users")
+    .select("id, name, grade, avatar");
+  if (uErr) return res.status(500).json({ error: uErr.message });
+
+  const { data: subjects } = await supabase.from("subjects").select("*");
+  const { data: sessions } = await supabase.from("study_sessions").select("*");
+  const { data: logs }     = await supabase.from("learning_logs").select("id,user_id,subject_id,date,topic,tags");
+
+  const students = users.map(u => ({
+    user:     u,
+    subjects: (subjects||[]).filter(s => s.user_id === u.id),
+    sessions: (sessions||[]).filter(s => s.user_id === u.id),
+    logs:     (logs||[]).filter(l => l.user_id === u.id),
+  }));
+
+  res.json(students);
+});
+
 // ── Start ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✅  StudyFlow API running on http://localhost:${PORT}`));
