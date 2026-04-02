@@ -250,7 +250,7 @@ app.put("/api/profile", auth, async (req, res) => {
 // STUDENTS — public rankings data
 // ════════════════════════════════════════════════════════════════════
 
-app.get("/api/students", auth, async (req, res) => {
+app.get("/api/students", async (req, res) => {
   const { data: users, error: uErr } = await supabase
     .from("users")
     .select("id, name, grade, avatar");
