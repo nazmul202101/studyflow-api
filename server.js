@@ -270,6 +270,51 @@ app.get("/api/students", async (req, res) => {
   res.json(students);
 });
 
+// ════════════════════════════════════════════════════════════════════
+// APPRECIATIONS
+// ════════════════════════════════════════════════════════════════════
+
+// Admin sends appreciation to a student (no JWT — uses admin key header)
+app.post("/api/appreciations", async (req, res) => {
+  const adminKey = req.headers["x-admin-key"];
+  if (!adminKey) return res.status(401).json({ error: "Admin key required." });
+
+  const { student_id, badge, message } = req.body;
+  if (!student_id || !badge || !message)
+    return res.status(400).json({ error: "student_id, badge, and message are required." });
+
+  const { data, error } = await supabase
+    .from("appreciations")
+    .insert({ student_id, badge, message, sent_at: new Date().toISOString() })
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// Get appreciations for a student (authenticated — student sees their own)
+app.get("/api/appreciations", auth, async (req, res) => {
+  const { data, error } = await supabase
+    .from("appreciations")
+    .select("*")
+    .eq("student_id", req.user.id)
+    .order("sent_at", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+// Get appreciations for any student — used by admin dashboard
+app.get("/api/appreciations/:student_id", async (req, res) => {
+  const { data, error } = await supabase
+    .from("appreciations")
+    .select("*")
+    .eq("student_id", req.params.student_id)
+    .order("sent_at", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
 // ── Start ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`✅  StudyFlow API running on http://localhost:${PORT}`));
