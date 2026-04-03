@@ -34,17 +34,21 @@ const APP_URL = process.env.APP_URL || "https://sheikhnazmulislam.cz/studyflow";
 // ── Email helper ────────────────────────────────────────────────────
 async function sendEmail({ to, subject, html }) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn("EMAIL_USER or EMAIL_PASS not set — skipping email.");
-    return;
+    console.warn("⚠️  EMAIL_USER or EMAIL_PASS not set in Railway — skipping email to " + to);
+    console.warn("    Add EMAIL_USER, EMAIL_PASS, APP_URL to Railway variables to enable emails.");
+    return false;
   }
   try {
     await transporter.sendMail({
-      from: `"StudyFlow" <${process.env.EMAIL_USER}>`,
+      from: `"StudyFlow 📚" <${process.env.EMAIL_USER}>`,
       to, subject, html,
     });
-    console.log(`Email sent to ${to}: ${subject}`);
+    console.log("✅ Email sent to " + to + ": " + subject);
+    return true;
   } catch (err) {
-    console.error("Email error:", err.message);
+    console.error("❌ Email error for " + to + ":", err.message);
+    console.error("   Check: Gmail App Password correct? 2FA enabled? Less-secure apps?");
+    return false;
   }
 }
 
@@ -341,7 +345,7 @@ app.put("/api/profile", auth, async (req, res) => {
 
 app.get("/api/students", async (req, res) => {
   const { data: users, error: uErr } = await supabase
-    .from("users").select("id, name, grade, avatar").eq("email_verified", true);
+    .from("users").select("id, name, grade, avatar");  // show all students in admin
   if (uErr) return res.status(500).json({ error: uErr.message });
 
   const { data: subjects }      = await supabase.from("subjects").select("*");
