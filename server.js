@@ -256,15 +256,17 @@ app.get("/api/students", async (req, res) => {
     .select("id, name, grade, avatar");
   if (uErr) return res.status(500).json({ error: uErr.message });
 
-  const { data: subjects } = await supabase.from("subjects").select("*");
-  const { data: sessions } = await supabase.from("study_sessions").select("*");
-  const { data: logs }     = await supabase.from("learning_logs").select("id,user_id,subject_id,date,topic,tags");
+  const { data: subjects }      = await supabase.from("subjects").select("*");
+  const { data: sessions }      = await supabase.from("study_sessions").select("*");
+  const { data: logs }          = await supabase.from("learning_logs").select("id,user_id,subject_id,date,topic,tags");
+  const { data: appreciations } = await supabase.from("appreciations").select("*").order("sent_at", { ascending: false });
 
   const students = users.map(u => ({
-    user:     u,
-    subjects: (subjects||[]).filter(s => s.user_id === u.id),
-    sessions: (sessions||[]).filter(s => s.user_id === u.id),
-    logs:     (logs||[]).filter(l => l.user_id === u.id),
+    user:          u,
+    subjects:      (subjects||[]).filter(s => s.user_id === u.id),
+    sessions:      (sessions||[]).filter(s => s.user_id === u.id),
+    logs:          (logs||[]).filter(l => l.user_id === u.id),
+    appreciations: (appreciations||[]).filter(a => a.student_id === u.id),
   }));
 
   res.json(students);
